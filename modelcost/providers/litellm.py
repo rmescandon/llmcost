@@ -5,6 +5,7 @@ LITELLM_URL = (
     "model_prices_and_context_window.json"
 )
 
+
 def fetch_litellm_prices() -> dict:
     resp = httpx.get(LITELLM_URL, timeout=10)
     resp.raise_for_status()

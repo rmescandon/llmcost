@@ -3,6 +3,7 @@ from .cache import load_cache, save_cache
 
 OPENROUTER_API = "https://openrouter.ai/api/v1/models"
 
+
 def fetch_openrouter_prices(use_cache: bool = True) -> dict:
     if use_cache:
         cached = load_cache("openrouter")
@@ -22,6 +23,7 @@ def fetch_openrouter_prices(use_cache: bool = True) -> dict:
     }
     save_cache("openrouter", models)
     return models
+
 
 def find_model(model_id: str, prices: dict) -> dict | None:
     if model_id in prices:

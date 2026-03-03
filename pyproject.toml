@@ -28,3 +28,8 @@ Repository = "https://github.com/rmescandon/modelcost"
 
 [project.scripts]
 modelcost = "modelcost.cli:main"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.4",
+]
