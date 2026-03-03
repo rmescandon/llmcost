@@ -1,96 +1,107 @@
-import argparse
 import sys
+import json as json_mod
+import click
 from .calculator import calculate_cost, list_models, VALID_SOURCES
 
 
+class DefaultCostGroup(click.Group):
+    """A Group that falls back to the 'cost' command when no subcommand is matched."""
+
+    def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
+        # If the first non-option token is not a known subcommand, prepend 'cost'
+        for i, arg in enumerate(args):
+            if not arg.startswith("-"):
+                if arg not in self.commands:
+                    args = ["cost"] + args
+                break
+        return super().parse_args(ctx, args)
+
+
+@click.group(cls=DefaultCostGroup)
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="llmcost")
-    parser.add_argument(
-        "model", nargs="?", help="Model ID (optional with --list-models)"
-    )
-    parser.add_argument("input_tokens", nargs="?", type=int)
-    parser.add_argument("output_tokens", nargs="?", type=int)
-    parser.add_argument(
-        "--source",
-        default="litellm",
-        choices=VALID_SOURCES,
-        help="Pricing source (default: litellm)",
-    )
-    parser.add_argument(
-        "--list-models",
-        action="store_true",
-        help="List available models for the given source",
-    )
-    parser.add_argument(
-        "--filter",
-        default=None,
-        metavar="TERM",
-        help="Filter model list by substring (e.g. --filter gpt)",
-    )
-    parser.add_argument("--json", action="store_true")
-    args = parser.parse_args()
+    """Calculate LLM API call costs from token usage."""
 
-    # ── List mode ──────────────────────────────────────────────
-    if args.list_models:
-        src = args.source if args.source != "all" else "litellm"
-        try:
-            models = list_models(src)
-        except Exception as e:
-            print(f"Error: {e}", file=sys.stderr)
-            sys.exit(1)
 
-        if args.filter:
-            models = [m for m in models if args.filter.lower() in m.lower()]
-
-        if args.json:
-            import json
-
-            print(
-                json.dumps(
-                    {"source": src, "count": len(models), "models": models}, indent=2
-                )
-            )
-        else:
-            print(f"Models available in [{src}] ({len(models)} total):\n")
-            for m in models:
-                print(f"  {m}")
-        return
-
+@main.command("cost")
+@click.argument("model")
+@click.argument("input_tokens", type=int)
+@click.argument("output_tokens", type=int)
+@click.option(
+    "--source",
+    default="litellm",
+    show_default=True,
+    type=click.Choice(VALID_SOURCES),
+    help="Pricing source.",
+)
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+def cost_cmd(
+    model: str, input_tokens: int, output_tokens: int, source: str, as_json: bool
+) -> None:
+    """Calculate the cost for MODEL with INPUT_TOKENS and OUTPUT_TOKENS."""
     # ── Calculation mode ──────────────────────────────────────────────
-    if not all(
-        [args.model, args.input_tokens is not None, args.output_tokens is not None]
-    ):
-        parser.error(
-            "model, input_tokens and output_tokens are required for cost calculation"
-        )
-
     try:
-        result = calculate_cost(
-            args.model, args.input_tokens, args.output_tokens, source=args.source
-        )
+        result = calculate_cost(model, input_tokens, output_tokens, source=source)
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
-    if args.json:
-        import json
-
-        print(json.dumps(result.to_dict(), indent=2))
+    if as_json:
+        click.echo(json_mod.dumps(result.to_dict(), indent=2))
         return
 
     if result.single_source:
         s = result.sources[0]
         if s.available:
-            print(f"${s.total_cost_usd:.6f}")
+            click.echo(f"${s.total_cost_usd:.6f}")
         else:
-            print(f"unavailable — {s.error}", file=sys.stderr)
+            click.echo(f"unavailable — {s.error}", err=True)
             sys.exit(1)
     else:
-        print(
+        click.echo(
             f"Model: {result.model}  ({result.input_tokens} in / {result.output_tokens} out)\n"
         )
         for s in result.sources:
             if s.available:
-                print(f"  [{s.source:<12}] ${s.total_cost_usd:.6f} USD")
+                click.echo(f"  [{s.source:<12}] ${s.total_cost_usd:.6f} USD")
             else:
-                print(f"  [{s.source:<12}] unavailable — {s.error}")
+                click.echo(f"  [{s.source:<12}] unavailable — {s.error}")
+
+
+@main.command("models")
+@click.option(
+    "--source",
+    default="litellm",
+    show_default=True,
+    type=click.Choice(("litellm", "openrouter", "tokencost")),
+    help="Pricing source.",
+)
+@click.option(
+    "--filter",
+    "filter_term",
+    default=None,
+    metavar="TERM",
+    help="Filter by substring (e.g. gpt).",
+)
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON.")
+def models_cmd(source: str, filter_term: str | None, as_json: bool) -> None:
+    """List available models for the given source."""
+    # ── List mode ──────────────────────────────────────────────
+    try:
+        models = list_models(source)
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+    if filter_term:
+        models = [m for m in models if filter_term.lower() in m.lower()]
+
+    if as_json:
+        click.echo(
+            json_mod.dumps(
+                {"source": source, "count": len(models), "models": models}, indent=2
+            )
+        )
+    else:
+        click.echo(f"Models available in [{source}] ({len(models)} total):\n")
+        for m in models:
+            click.echo(f"  {m}")
