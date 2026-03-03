@@ -5,7 +5,9 @@ from .calculator import calculate_cost, list_models, VALID_SOURCES
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="llmcost")
-    parser.add_argument("model", nargs="?", help="Model ID (optional with --list-models)")
+    parser.add_argument(
+        "model", nargs="?", help="Model ID (optional with --list-models)"
+    )
     parser.add_argument("input_tokens", nargs="?", type=int)
     parser.add_argument("output_tokens", nargs="?", type=int)
     parser.add_argument(
@@ -28,7 +30,7 @@ def main() -> None:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    # ── Modo listado ──────────────────────────────────────────────
+    # ── List mode ──────────────────────────────────────────────
     if args.list_models:
         src = args.source if args.source != "all" else "litellm"
         try:
@@ -42,25 +44,37 @@ def main() -> None:
 
         if args.json:
             import json
-            print(json.dumps({"source": src, "count": len(models), "models": models}, indent=2))
+
+            print(
+                json.dumps(
+                    {"source": src, "count": len(models), "models": models}, indent=2
+                )
+            )
         else:
             print(f"Models available in [{src}] ({len(models)} total):\n")
             for m in models:
                 print(f"  {m}")
         return
 
-    # ── Modo cálculo ──────────────────────────────────────────────
-    if not all([args.model, args.input_tokens is not None, args.output_tokens is not None]):
-        parser.error("model, input_tokens and output_tokens are required for cost calculation")
+    # ── Calculation mode ──────────────────────────────────────────────
+    if not all(
+        [args.model, args.input_tokens is not None, args.output_tokens is not None]
+    ):
+        parser.error(
+            "model, input_tokens and output_tokens are required for cost calculation"
+        )
 
     try:
-        result = calculate_cost(args.model, args.input_tokens, args.output_tokens, source=args.source)
+        result = calculate_cost(
+            args.model, args.input_tokens, args.output_tokens, source=args.source
+        )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     if args.json:
         import json
+
         print(json.dumps(result.to_dict(), indent=2))
         return
 
@@ -72,7 +86,9 @@ def main() -> None:
             print(f"unavailable — {s.error}", file=sys.stderr)
             sys.exit(1)
     else:
-        print(f"Model: {result.model}  ({result.input_tokens} in / {result.output_tokens} out)\n")
+        print(
+            f"Model: {result.model}  ({result.input_tokens} in / {result.output_tokens} out)\n"
+        )
         for s in result.sources:
             if s.available:
                 print(f"  [{s.source:<12}] ${s.total_cost_usd:.6f} USD")

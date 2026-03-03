@@ -5,10 +5,13 @@ from .providers.litellm import fetch_litellm_prices
 
 VALID_SOURCES = ("litellm", "openrouter", "tokencost", "all")
 
+
 def list_models(source: str = "litellm") -> list[str]:
-    """Devuelve los modelos disponibles en la fuente indicada."""
+    """Return the available models for the given source."""
     if source not in ("litellm", "openrouter", "tokencost"):
-        raise ValueError(f"Invalid source '{source}'. Valid values: litellm, openrouter, tokencost")
+        raise ValueError(
+            f"Invalid source '{source}'. Valid values: litellm, openrouter, tokencost"
+        )
 
     if source == "litellm":
         return sorted(fetch_litellm_prices().keys())
@@ -18,6 +21,7 @@ def list_models(source: str = "litellm") -> list[str]:
 
     if source == "tokencost":
         from tokencost.constants import TOKEN_COSTS
+
         return sorted(TOKEN_COSTS.keys())
 
 
@@ -39,11 +43,13 @@ def calculate_cost(
         input_tokens=input_tokens,
         output_tokens=output_tokens,
         sources=sources,
-        single_source=source != "all",  # ← flag para la salida
+        single_source=source != "all",  # output formatting flag
     )
 
 
-def _fetch_all(model: str, input_tokens: int, output_tokens: int, active: list[str]) -> list[SourceCost]:
+def _fetch_all(
+    model: str, input_tokens: int, output_tokens: int, active: list[str]
+) -> list[SourceCost]:
     network_tasks = {
         name: fn
         for name, fn in {
@@ -58,7 +64,9 @@ def _fetch_all(model: str, input_tokens: int, output_tokens: int, active: list[s
     if network_tasks:
         with ThreadPoolExecutor(max_workers=len(network_tasks)) as executor:
             futures = {
-                executor.submit(_compute, name, fn, model, input_tokens, output_tokens): name
+                executor.submit(
+                    _compute, name, fn, model, input_tokens, output_tokens
+                ): name
                 for name, fn in network_tasks.items()
             }
             for future in as_completed(futures):
@@ -67,19 +75,29 @@ def _fetch_all(model: str, input_tokens: int, output_tokens: int, active: list[s
     if "tokencost" in active:
         results["tokencost"] = _tokencost_source(model, input_tokens, output_tokens)
 
-    # Preservar el orden: litellm → openrouter → tokencost
+    # Preserve order: litellm -> openrouter -> tokencost
     order = ["litellm", "openrouter", "tokencost"]
     return [results[name] for name in order if name in results]
 
 
-def _compute(source_name: str, fetch_fn, model: str, input_tokens: int, output_tokens: int) -> SourceCost:
+def _compute(
+    source_name: str, fetch_fn, model: str, input_tokens: int, output_tokens: int
+) -> SourceCost:
     try:
         prices = fetch_fn()
-        pricing = find_model(model, prices) if source_name == "openrouter" else prices.get(model)
+        pricing = (
+            find_model(model, prices)
+            if source_name == "openrouter"
+            else prices.get(model)
+        )
         if pricing is None:
-            return SourceCost(source=source_name, total_cost_usd=None,
-                              price_per_million_input=None, price_per_million_output=None,
-                              error=f"Model '{model}' not found")
+            return SourceCost(
+                source=source_name,
+                total_cost_usd=None,
+                price_per_million_input=None,
+                price_per_million_output=None,
+                error=f"Model '{model}' not found",
+            )
         cost = pricing["prompt"] * input_tokens + pricing["completion"] * output_tokens
         return SourceCost(
             source=source_name,
@@ -88,9 +106,13 @@ def _compute(source_name: str, fetch_fn, model: str, input_tokens: int, output_t
             price_per_million_output=pricing["completion"] * 1_000_000,
         )
     except Exception as e:
-        return SourceCost(source=source_name, total_cost_usd=None,
-                          price_per_million_input=None, price_per_million_output=None,
-                          error=str(e))
+        return SourceCost(
+            source=source_name,
+            total_cost_usd=None,
+            price_per_million_input=None,
+            price_per_million_output=None,
+            error=str(e),
+        )
 
 
 def _tokencost_source(model: str, input_tokens: int, output_tokens: int) -> SourceCost:
@@ -98,7 +120,7 @@ def _tokencost_source(model: str, input_tokens: int, output_tokens: int) -> Sour
         from tokencost.costs import calculate_cost_by_tokens
         from tokencost.constants import TOKEN_COSTS
 
-        input_cost  = calculate_cost_by_tokens(input_tokens,  model, "input")
+        input_cost = calculate_cost_by_tokens(input_tokens, model, "input")
         output_cost = calculate_cost_by_tokens(output_tokens, model, "output")
         entry = TOKEN_COSTS[model.lower()]
 
@@ -109,10 +131,18 @@ def _tokencost_source(model: str, input_tokens: int, output_tokens: int) -> Sour
             price_per_million_output=float(entry["output_cost_per_token"]) * 1_000_000,
         )
     except KeyError as e:
-        return SourceCost(source="tokencost", total_cost_usd=None,
-                          price_per_million_input=None, price_per_million_output=None,
-                          error=f"Model not found: {e}")
+        return SourceCost(
+            source="tokencost",
+            total_cost_usd=None,
+            price_per_million_input=None,
+            price_per_million_output=None,
+            error=f"Model not found: {e}",
+        )
     except Exception as e:
-        return SourceCost(source="tokencost", total_cost_usd=None,
-                          price_per_million_input=None, price_per_million_output=None,
-                          error=str(e))
+        return SourceCost(
+            source="tokencost",
+            total_cost_usd=None,
+            price_per_million_input=None,
+            price_per_million_output=None,
+            error=str(e),
+        )
