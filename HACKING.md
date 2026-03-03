@@ -10,7 +10,7 @@ uv build
 uv publish --publish-url https://test.pypi.org/legacy/ --token TU_TOKEN_TESTPYPI
 
 # Verify installation from TestPyPI
-uv pip install --index-url https://test.pypi.org/simple/ howmuch
+uv pip install --index-url https://test.pypi.org/simple/ modelcost
 
 # Publish in real PyPI
 uv publish --token TU_TOKEN_PYPI

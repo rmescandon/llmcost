@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "howmuch"
+name = "modelcost"
 version = "0.1.0"
 description = "Calculate LLM API call costs from token usage"
 readme = "README.md"
@@ -23,8 +23,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rmescandon/howmuch"
-Repository = "https://github.com/rmescandon/howmuch"
+Homepage = "https://github.com/rmescandon/modelcost"
+Repository = "https://github.com/rmescandon/modelcost"
 
 [project.scripts]
-howmuch = "howmuch.cli:main"
+modelcost = "modelcost.cli:main"

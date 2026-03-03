@@ -1,4 +1,4 @@
-# howmuch
+# modelcost
 
 Calculate LLM API call costs from token usage using price catalogs from multiple sources.
 
@@ -10,7 +10,7 @@ Supported pricing sources:
 ## Install
 
 ```bash
-python -m pip install howmuch
+python -m pip install modelcost
 ```
 
 ## CLI
@@ -19,38 +19,38 @@ The default command calculates cost, so you can omit the `cost` subcommand.
 
 ```bash
 # Default (cost)
-howmuch gpt-4o 1000 500
+modelcost gpt-4o 1000 500
 
 # Explicit cost (optional)
-howmuch cost gpt-4o 1000 500
+modelcost cost gpt-4o 1000 500
 
 # All sources in one run
-howmuch --source all gpt-4o 1000 500
+modelcost --source all gpt-4o 1000 500
 
 # JSON output
-howmuch --json gpt-4o 1000 500
+modelcost --json gpt-4o 1000 500
 ```
 
 List available models:
 
 ```bash
-howmuch models
-howmuch models --source openrouter
-howmuch models --filter gpt
-howmuch models --json
+modelcost models
+modelcost models --source openrouter
+modelcost models --filter gpt
+modelcost models --json
 ```
 
 CLI help:
 
 ```bash
-howmuch --help
-howmuch models --help
+modelcost --help
+modelcost models --help
 ```
 
 ## Library
 
 ```python
-from howmuch.calculator import calculate_cost, list_models
+from modelcost.calculator import calculate_cost, list_models
 
 result = calculate_cost("gpt-4o", 1000, 500)
 
@@ -79,7 +79,7 @@ Each `SourceCost` includes:
 
 ## Caching
 
-`openrouter` responses are cached in `~/.howmuch_cache.json` for 1 hour.
+`openrouter` responses are cached in `~/.modelcost_cache.json` for 1 hour.
 
 ## Notes
 

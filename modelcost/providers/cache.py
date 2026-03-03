@@ -2,7 +2,7 @@ import json
 import time
 from pathlib import Path
 
-CACHE_FILE = Path.home() / ".howmuch_cache.json"
+CACHE_FILE = Path.home() / ".modelcost_cache.json"
 CACHE_TTL = 3600
 
 
