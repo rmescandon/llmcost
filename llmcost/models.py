@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -20,6 +20,7 @@ class CostResult:
     input_tokens: int
     output_tokens: int
     sources: list[SourceCost]
+    single_source: bool = True  # False cuando source="all"
 
     @property
     def available_sources(self) -> list[SourceCost]:
