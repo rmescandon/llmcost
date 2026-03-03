@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llmcost"
+version = "0.1.0"
+description = "Calculate LLM API call costs from token usage"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "tokencost>=0.1.16",
+]
+
+[project.scripts]
+llmcost = "llmcost.cli:main"   # ← registra el comando
